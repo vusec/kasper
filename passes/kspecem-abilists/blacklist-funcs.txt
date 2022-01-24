@@ -1,0 +1,47 @@
+# insert a restart hook at the beginning of the function
+# do not insert anything else
+
+# kdfsan_mm.c:
+fun:kdfsan_alloc_page=blacklist
+fun:kdfsan_free_page=blacklist
+fun:kdfsan_split_page=blacklist
+
+# dfsw$ wrappers:
+fun:dfsw*=blacklist
+
+# make sure this will be reflected in function tracking so we can account for it if it is happening
+fun:kasan_report_invalid_free=blacklist
+
+# attempts to write into kspecem writelog
+fun:kasan_init_slab_obj=blacklist
+
+# only called at kernel boot time
+fun:kasan_early_init=blacklist
+fun:kasan_early_p4d_populate=blacklist
+fun:kasan_init=blacklist
+fun:kasan_populate_p4d=blacklist
+fun:kasan_populate_pmd=blacklist
+fun:kasan_populate_pud=blacklist
+fun:kasan_populate_shadow=blacklist
+fun:kasan_populate_zero_shadow=blacklist
+fun:kasan_remove_p4d_table=blacklist
+
+fun:default_idle=blacklist
+fun:panic=blacklist
+fun:_copy_from_user=blacklist
+fun:kfree=blacklist
+fun:kfree_link=blacklist
+fun:kfree_skb=blacklist
+fun:kfree_skb_partial=blacklist
+fun:kfree_skb_list=blacklist
+fun:kfree_sensitive=blacklist
+fun:kfree_const=blacklist
+fun:kfree_strarray=blacklist
+fun:__kfree_skb=blacklist
+fun:kmem_cache_free=blacklist
+fun:kmem_cache_alloc=blacklist
+fun:kmalloc_array=blacklist
+fun:kmalloc_array_node=blacklist
+fun:__kmem_cache_free_bulk=blacklist
+fun:kmalloc_fix_flags=blacklist
+fun:kmem_cache_free_bulk=blacklist

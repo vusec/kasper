@@ -1,0 +1,118 @@
+# functions which should not have a kspecem_restart hook before calling,
+# but should not be instrumented with specultation.
+# Also those functions do not have check_call_depth since
+# kspecem_spec_call_depth is not decreased through the kspecem_restart hook
+# on the ReturnInst
+
+# intrinsics:
+fun:llvm.*=nospec
+
+# kspecem:
+fun:kspecem_*=nospec
+
+# kcov:
+fun:__sanitizer*=nospec
+
+# kasan:
+fun:kasan_check_*=nospec
+fun:kasan_report=nospec
+fun:kasan_report_invalid_free=nospec
+
+fun:__kasan_slab_free=nospec
+fun:kasan_alloc_pages=nospec
+fun:kasan_cache_create=nospec
+fun:kasan_disable_current=nospec
+fun:kasan_enable_current=nospec
+fun:kasan_free_pages=nospec
+fun:kasan_free_shadow=nospec
+fun:kasan_kfree_large=nospec
+fun:kasan_kmalloc=nospec
+fun:kasan_poison_kfree=nospec
+fun:kasan_poison_slab=nospec
+fun:kasan_poison_object_data=nospec
+fun:kasan_slab_alloc=nospec
+fun:kasan_slab_free=nospec
+fun:kasan_unpoison_object_data=nospec
+fun:kasan_unpoison_shadow=nospec
+fun:kasan_add_zero_shadow=nospec
+fun:kasan_cache_shrink=nospec
+fun:kasan_cache_shutdown=nospec
+fun:kasan_kmalloc_large=nospec
+fun:kasan_krealloc=nospec
+fun:kasan_metadata_size=nospec
+fun:kasan_module_alloc=nospec
+fun:kasan_remove_zero_shadow=nospec
+fun:kasan_restore_multi_shot=nospec
+fun:kasan_save_enable_multi_shot=nospec
+fun:kasan_set_multi_shot=nospec
+fun:kasan_unpoison_stack_above_sp_to=nospec
+fun:kasan_unpoison_task_stack=nospec
+fun:kasan_unpoison_task_stack_below=nospec
+fun:kasan_addr_to_page=nospec
+fun:kasan_addr_to_page=nospec
+fun:__kasan_check_write=nospec
+fun:__kasan_check_read=nospec
+fun:__kasan_alloc_pages=nospec
+fun:kasan_byte_accessible=nospec
+fun:__kasan_cache_create=nospec
+fun:__kasan_cache_create_kmalloc=nospec
+fun:__kasan_check_byte=nospec
+fun:kasan_cpu_offline=nospec
+fun:kasan_cpu_online=nospec
+fun:kasan_cpu_quarantine_init=nospec
+fun:kasan_find_first_bad_addr=nospec
+fun:__kasan_free_pages=nospec
+fun:kasan_get_alloc_meta=nospec
+fun:kasan_get_bug_type=nospec
+fun:kasan_get_free_meta=nospec
+fun:kasan_get_free_track=nospec
+fun:__kasan_init_slab_obj=nospec
+fun:__kasan_kfree_large=nospec
+fun:____kasan_kmalloc=nospec
+fun:__kasan_kmalloc=nospec
+fun:__kasan_kmalloc_large=nospec
+fun:__kasan_krealloc=nospec
+fun:kasan_map_early_shadow=nospec
+fun:kasan_metadata_fetch_row=nospec
+fun:__kasan_metadata_size=nospec
+fun:__kasan_never_merge=nospec
+fun:kasan_poison=nospec
+fun:kasan_poison_last_granule=nospec
+fun:__kasan_poison_object_data=nospec
+fun:__kasan_poison_slab=nospec
+fun:kasan_populate_early_shadow=nospec
+fun:kasan_populate_pgd=nospec
+fun:kasan_print_address_stack_frame=nospec
+fun:kasan_quarantine_put=nospec
+fun:kasan_quarantine_reduce=nospec
+fun:kasan_quarantine_remove_cache=nospec
+fun:kasan_record_aux_stack=nospec
+fun:kasan_report_original=nospec
+fun:kasan_save_stack=nospec
+fun:kasan_set_free_info=nospec
+fun:kasan_set_track=nospec
+fun:__kasan_slab_alloc=nospec
+fun:__kasan_slab_free_mempool=nospec
+fun:kasan_unpoison=nospec
+fun:__kasan_unpoison_object_data=nospec
+fun:__kasan_unpoison_range=nospec
+
+fun:__asan*=nospec
+fun:check_memory_region*=nospec
+
+# kdfsan:
+fun:__kdf*=nospec
+fun:kdfsan*=nospec
+fun:kdf_*=nospec
+fun:__dfsan*=nospec
+fun:__dfsw_*=nospec
+fun:dfsan*=nospec
+
+# kdfinit:
+fun:kdfinit_*=nospec
+
+# non-maskable-interrupts
+fun:stop_nmi=nospec
+fun:restart_nmi=nospec
+
+fun:arch_local_irq_enable=nospec

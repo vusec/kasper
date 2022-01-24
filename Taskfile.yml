@@ -1,0 +1,86 @@
+version: '3'
+
+dotenv: ['.env']
+
+env:
+  ROOT: '{{.PWD}}'
+  GDB: gdb
+  KERNEL: '{{.ROOT}}/kdfsan-linux'
+  INITRAMFS: '{{.ROOT}}/out/initramfs.cpio'
+  QEMUSOCKET: '{{.ROOT}}/scripts/.QEMU-MONITOR-SOCKET'
+  SYZKALLER_CFG: '{{.ROOT}}/syzkaller.cfg'
+  SYZKALLER_IMG: '{{.ROOT}}/out/syzkaller-image'
+  SYZKALLER_LOGS_PATH: '{{.ROOT}}/kasper-results/out/logs'
+  TESTCASES: '{{.ROOT}}/out/testcases'
+  LLVM_CC_NAME: 'clang'
+  LLVMPREFIX: '{{.ROOT}}/kdfsan-llvm-project/build'
+  LLVM_COMPILER_PATH: '{{.ROOT}}/kdfsan-llvm-project/build/bin'
+  CLANG: '{{.ROOT}}/kdfsan-llvm-project/build/bin/clang'
+  CC: '{{.ROOT}}/kdfsan-llvm-project/build/bin/clang'
+  CXX: '{{.ROOT}}/kdfsan-llvm-project/build/bin/clang++'
+  OPT: '{{.ROOT}}/kdfsan-llvm-project/build/bin/opt'
+  LD: '{{.ROOT}}/kdfsan-llvm-project/build/bin/ld.lld'
+  LLVM_NM: '{{.ROOT}}/kdfsan-llvm-project/build/bin/llvm-nm'
+  LLVM_AR: '{{.ROOT}}/kdfsan-llvm-project/build/bin/llvm-ar'
+  LLVM_STRIP: '{{.ROOT}}/kdfsan-llvm-project/build/bin/llvm-strip'
+  LLVM_OBJCOPY: '{{.ROOT}}/kdfsan-llvm-project/build/bin/llvm-objcopy'
+  LLVM_OBJDUMP: '{{.ROOT}}/kdfsan-llvm-project/build/bin/llvm-objdump'
+  LLVM_READELF: '{{.ROOT}}/kdfsan-llvm-project/build/bin/llvm-readelf'
+  LLVM_LINK: '{{.ROOT}}/kdfsan-llvm-project/build/bin/llvm-link'
+  LLVM_CONFIG: '{{.ROOT}}/kdfsan-llvm-project/build/bin/llvm-config'
+  GOPATH: '{{.ROOT}}/out/go'
+  GOBIN: '{{.ROOT}}/out/go/bin'
+  SYZKALLER_PREFIX: '{{.ROOT}}/kdfsan-syzkaller'
+  SYZKALLER_BIN: '{{.ROOT}}/kdfsan-syzkaller/bin'
+  SYZKALLER_SSH_PORT: 1567
+  NPROC: 16
+  GDB_PORT: 45457
+  ENABLE_KVM: 1
+  ENABLE_KASAN: 1
+  ENABLE_SYZKALLER: 1
+  ENABLE_KDFSAN: 1
+  ENABLE_KSPECEM: 1
+  ENABLE_DEBUG: 1
+  ENABLE_GDB_BUILD: 1
+
+includes:
+  initramfs:  ./taskfiles/TasksInitramfs.yml
+  kernel:     ./taskfiles/TasksKernel.yml
+  llvm:       ./taskfiles/TasksLLVM.yml
+  qemu:       ./taskfiles/TasksQemu.yml
+  syzkaller:  ./taskfiles/TasksSyzkaller.yml
+
+tasks:
+  update:
+    desc: update submodules (and initialize if uninitialized)
+    cmds:
+      - git submodule update --init --progress
+
+  qemu:
+    desc: run the kernel within qemu
+    cmds:
+      - task: qemu:qemu
+
+  syz:
+    desc: run the syzkaller image within qemu
+    cmds:
+      - task: qemu:syzkaller
+
+  build:
+    desc: build static libraries and passes
+    cmds:
+      - mkdir -p ${ROOT}/build
+      - cd ${ROOT}/build && cmake ..
+      - cd ${ROOT}/build && make -j${NPROC}
+
+  build-j1:
+    desc: build static libraries and passes NOT in parallel (used for debugging build errors)
+    cmds:
+      - mkdir -p ${ROOT}/build
+      - cd ${ROOT}/build && cmake ..
+      - cd ${ROOT}/build && make -j1
+
+  compile-testcases:
+    desc: compile syzkaller testcases
+    cmds:
+      - scripts/compile-testcases.py -d {{.TESTCASES}}

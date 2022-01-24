@@ -1,0 +1,117 @@
+version: '3'
+
+tasks:
+  bzImage:
+    desc: compile the linux kernel to create the final image
+    cmds:
+      - cd $KERNEL && make -j${NPROC} LLVM=1 LLVM_IAS=1 CC=$CLANG LD=$LD AR=$LLVM_AR NM=$LLVM_NM STRIP=$LLVM_STRIP OBJCOPY=$LLVM_OBJCOPY OBJDUMP=$LLVM_OBJDUMP READELF=$LLVM_READELF HOSTCC=$CLANG HOSTCXX=$CXX HOSTAR=$LLVM_AR HOSTLD=$LD bzImage
+
+  clean-bzImage:
+    desc: clean bzImage to trigger recreation once vmlinux got replaced
+    cmds:
+      - cd ${KERNEL} && rm -rf arch/x86/boot/bzImage arch/x86/boot/setup.bin arch/x86/boot/vmlinux.bin arch/x86/boot/zoffset.h arch/x86/boot/compressed/vmlinux arch/x86/boot/compressed/vmlinux.bin vmlinux vmlinux.o .thinlto-cache
+
+  clean:
+    desc: clean kernel
+    cmds:
+      - cd $KERNEL && make LLVM=1 LLVM_IAS=1 CC=$CLANG LD=$LD AR=$LLVM_AR NM=$LLVM_NM STRIP=$LLVM_STRIP OBJCOPY=$LLVM_OBJCOPY OBJDUMP=$LLVM_OBJDUMP READELF=$LLVM_READELF HOSTCC=$CLANG HOSTCXX=$CXX HOSTAR=$LLVM_AR HOSTLD=$LD clean
+
+  clean-all:
+    desc: clean kernel and generated files (e.g., header files required by static libs)
+    cmds:
+      - cd $KERNEL && make LLVM=1 LLVM_IAS=1 CC=$CLANG LD=$LD AR=$LLVM_AR NM=$LLVM_NM STRIP=$LLVM_STRIP OBJCOPY=$LLVM_OBJCOPY OBJDUMP=$LLVM_OBJDUMP READELF=$LLVM_READELF HOSTCC=$CLANG HOSTCXX=$CXX HOSTAR=$LLVM_AR HOSTLD=$LD mrproper
+
+  config:
+    desc: apply custom kernel config required
+    cmds:
+      - cd $KERNEL && make LLVM=1 LLVM_IAS=1 CC=$CLANG LD=$LD AR=$LLVM_AR NM=$LLVM_NM STRIP=$LLVM_STRIP OBJCOPY=$LLVM_OBJCOPY OBJDUMP=$LLVM_OBJDUMP READELF=$LLVM_READELF HOSTCC=$CLANG HOSTCXX=$CXX HOSTAR=$LLVM_AR HOSTLD=$LD defconfig
+      # static_branch_likely is generating invalid assembly on llvm-11
+      # when compiled from bitcode, be therefore disable
+      # CONFIG_JUMP_LABEL as a temporary fix
+      - cd ${KERNEL} && scripts/config --disable CONFIG_JUMP_LABEL
+      # use frame_pointer as unwinder which is more reliable with passes
+      - cd ${KERNEL} && scripts/config --enable CONFIG_UNWINDER_FRAME_POINTER
+      # enable all KALLSYMS
+      - cd ${KERNEL} && scripts/config --enable CONFIG_KALLSYMS_ALL
+      # disable KASLR
+      - cd ${KERNEL} && scripts/config --disable CONFIG_RANDOMIZE_BASE
+      # disable preemption
+      - cd ${KERNEL} && scripts/config --disable CONFIG_PREEMPT_VOLUNTARY
+      # disable SMP
+      - cd ${KERNEL} && scripts/config --disable CONFIG_SMP
+      # set NR_CPUS to 1
+      - cd ${KERNEL} && scripts/config --set-val CONFIG_NR_CPUS 1
+      # reduce frequency of timer interrupts
+      - cd ${KERNEL} && scripts/config --disable CONFIG_HZ_1000
+      - cd ${KERNEL} && scripts/config --enable CONFIG_HZ_100
+      - cd ${KERNEL} && scripts/config --set-val CONFIG_HZ 100
+      # HIGH_RES_TIMER
+      - cd ${KERNEL} && scripts/config --disable CONFIG_HIGH_RES_TIMERS
+      # ENABLE LTO
+      - cd ${KERNEL} && scripts/config --disable CONFIG_LTO_NONE
+      - cd ${KERNEL} && scripts/config --enable CONFIG_LTO_CLANG_THIN
+      - \[ -z "$ENABLE_GDB_BUILD" \] || task kernel:config-gdb-build
+      - \[ -z "$ENABLE_KSPECEM" \] ||    task kernel:config-kspecem
+      - \[ -z "$ENABLE_KDFSAN" \] ||    task kernel:config-kdfsan
+      - \[ -z "$ENABLE_KASAN" \] ||     task kernel:config-kasan
+      - \[ -z "$ENABLE_DEBUG" \] ||     task kernel:config-debug
+      - \[ -z "$ENABLE_SYZKALLER" \] || task kernel:config-syzkaller
+      - cd $KERNEL && yes "" | make -j${NPROC} LLVM=1 LLVM_IAS=1 CC=$CLANG LD=$LD AR=$LLVM_AR NM=$LLVM_NM STRIP=$LLVM_STRIP OBJCOPY=$LLVM_OBJCOPY OBJDUMP=$LLVM_OBJDUMP READELF=$LLVM_READELF HOSTCC=$CLANG HOSTCXX=$CXX HOSTAR=$LLVM_AR HOSTLD=$LD modules_prepare
+
+  config-gdb-build:
+      # Kernel debugging (see https://stackoverflow.com/a/65526544)
+      - cd ${KERNEL} && scripts/config --enable CONFIG_X86_X2APIC
+      - cd ${KERNEL} && scripts/config --enable CONFIG_X86_LOCAL_APIC
+      - cd ${KERNEL} && scripts/config --enable CONFIG_HYPERVISOR_GUEST
+      - cd ${KERNEL} && scripts/config --enable CONFIG_KVM_GUEST
+      - cd ${KERNEL} && scripts/config --enable CONFIG_PARAVIRT
+      - cd ${KERNEL} && scripts/config --enable CONFIG_HAVE_STATIC_CALL
+
+  config-kspecem:
+    cmds:
+      - cd $KERNEL && scripts/config --enable CONFIG_KSPECEM
+
+  config-kdfsan:
+    cmds:
+      - cd $KERNEL && scripts/config --enable CONFIG_KDFSAN
+
+  config-kasan:
+    cmds:
+      # disable VMAP_STACK
+      - cd $KERNEL && scripts/config --disable CONFIG_VMAP_STACK
+      # enable KASAN
+      - cd $KERNEL && scripts/config --enable CONFIG_KASAN
+      # echo "# CONFIG_KASAN_EXTRA is not set" >> ${KERNEL}/.config
+      - cd $KERNEL && scripts/config --disable CONFIG_KASAN_EXTRA
+      - cd $KERNEL && scripts/config --enable CONFIG_KASAN_OUTLINE
+      - cd $KERNEL && scripts/config --disable CONFIG_KASAN_INLINE
+      - cd $KERNEL && scripts/config --disable CONFIG_TEST_KASAN
+      # if compiling with clang, kernel disables KASAN stack instrumentation by default because of stack size issues
+      - cd $KERNEL && scripts/config --enable CONFIG_KASAN_STACK_ENABLE
+      - cd $KERNEL && scripts/config --disable CONFIG_KASAN_VMALLOC
+      - cd $KERNEL && scripts/config --disable CONFIG_KASAN_MODULE_TEST
+
+  config-debug:
+    cmds:
+      - cd $KERNEL && scripts/config --enable CONFIG_DEBUG_INFO
+      - cd $KERNEL && scripts/config --enable CONFIG_DEBUG_INFO_REDUCED
+      - cd $KERNEL && scripts/config --disable CONFIG_DEBUG_INFO_COMPRESSED
+      - cd $KERNEL && scripts/config --disable CONFIG_DEBUG_INFO_SPLIT
+      - cd $KERNEL && scripts/config --disable CONFIG_DEBUG_INFO_DWARF4
+      - cd $KERNEL && scripts/config --disable CONFIG_DEBUG_INFO_DWARF5
+      - cd $KERNEL && scripts/config --disable CONFIG_GDB_SCRIPTS
+      - cd $KERNEL && scripts/config --enable CONFIG_DEBUG_INFO_DWARF_TOOLCHAIN_DEFAULT
+
+  config-syzkaller:
+    cmds:
+      - cd $KERNEL && scripts/config --enable CONFIG_KCOV
+      - cd $KERNEL && scripts/config --enable CONFIG_KCOV_INSTRUMENT_ALL
+      - cd $KERNEL && scripts/config --enable CONFIG_KCOV_ENABLE_COMPARISONS
+      - cd $KERNEL && scripts/config --enable CONFIG_CONFIGFS_FS
+      - cd $KERNEL && scripts/config --enable CONFIG_SECURITYFS
+      # additional configs for CONFIGFS_FS and CONFIG_SECURITYFS
+      - cd $KERNEL && scripts/config --disable CONFIG_NVME_TARGET
+      - cd $KERNEL && scripts/config --disable CONFIG_NETCONSOLE_DYNAMIC
+      - cd $KERNEL && scripts/config --disable CONFIG_OCFS2_FS
+      - cd $KERNEL && scripts/config --disable CONFIG_DLM
+      - cd $KERNEL && scripts/config --set-val CONFIG_KCOV_IRQ_AREA_SIZE 0x40000

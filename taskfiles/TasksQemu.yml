@@ -1,0 +1,75 @@
+version: '3'
+
+tasks:
+  qemu:
+    vars:
+      CLI_ARGS: '{{default "--target qemu --whitelist t --interactive" .CLI_ARGS}}'
+    cmds:
+      - python3 scripts/qemu/qemu.py {{.CLI_ARGS}}
+
+  qemu-gdb:
+    desc: run qemu with attaching gdb
+    cmds:
+      - python3 scripts/qemu/qemu.py --target qemu --whitelist t --interactive --gdb
+
+  syzkaller:
+    desc: run syzkaller image in qemu
+    cmds:
+      - python3 scripts/qemu/qemu.py --whitelist t --interactive
+
+  syzkaller-gdb:
+    desc: run syzkaller image in qemu with attaching gdb
+    cmds:
+      - python3 scripts/qemu/qemu.py --whitelist t --interactive --gdb
+
+  interact:
+    desc: run syzkaller image with testcases copied into the vm
+    cmds:
+      - python3 scripts/qemu/qemu.py --testprogs {{.TESTCASES}} --interactive | tee out/interact-log
+
+  interact-gdb:
+    desc: run syzkaller image with testcases copied into the vm with attaching gdb
+    cmds:
+      - python3 scripts/qemu/qemu.py --testprogs {{.TESTCASES}} --interactive --gdb | tee out/interact-log
+
+  test:
+    desc: run basic tests to ensure everything is working
+    cmds:
+      # run tests with task-whitelisting, no stack trace
+      - python3 scripts/qemu/qemu.py --target qemu --whitelist t --tests --no-calltraces --duplicate-reports
+
+  test-gdb:
+    desc: like 'test', but attaches gdb
+    cmds:
+      # run tests with task-whitelisting, no stack trace
+      - python3 scripts/qemu/qemu.py --target qemu --whitelist t --tests --no-calltraces --duplicate-reports --gdb --interactive
+
+  kocher-test:
+    desc: run tests with kocher eval
+    cmds:
+      # run tests with task-whitelisting, no stack trace
+      - python3 scripts/qemu/qemu.py --target qemu --whitelist t --tests-with-kocher --no-calltraces --duplicate-reports
+
+  syz-test:
+    desc: run tests on syzkaller image
+    cmds:
+      - python3 scripts/qemu/qemu.py --whitelist t --tests --no-calltraces > out/syzkaller-log
+
+  ######################
+  #### Policy tests ####
+
+  test-specfuzz:
+    desc: runs tests with specfuzz policies
+    cmds:
+      - python3 scripts/qemu/qemu.py --target qemu --whitelist t --tests --no-calltraces --duplicate-reports --specfuzz
+
+  test-spectaint:
+    desc: runs tests with spectaint policies
+    cmds:
+      - python3 scripts/qemu/qemu.py --target qemu --whitelist t --tests --no-calltraces --duplicate-reports --spectaint
+
+  test-kasper-phtsyscallcc:
+    desc: runs tests with only pht-syscall-cc policy
+    cmds:
+      - python3 scripts/qemu/qemu.py --target qemu --whitelist t --tests --no-calltraces --duplicate-reports --kasper-phtsyscallcc
+

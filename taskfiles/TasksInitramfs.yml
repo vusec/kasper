@@ -1,0 +1,35 @@
+version: '3'
+
+tasks:
+  create:
+    desc: create initramfs
+    cmds:
+      - cd out && curl https://busybox.net/downloads/busybox-1.33.0.tar.bz2 | tar xjf -
+      - task initramfs:busybox
+      - task initramfs:initramfs
+      - rm -rf out/busybox-1.33.0
+      - task initramfs:create-cpio
+      - rm -rf out/initramfs
+
+  busybox:
+    dir: out/busybox-1.33.0
+    cmds:
+      - mkdir -pv build
+      - make O=build defconfig
+      - sed -i '/# CONFIG_STATIC is not set/c\CONFIG_STATIC=y' build/.config
+      - cd build && make -j6
+      - cd build && make install
+
+  initramfs:
+    dir: out/initramfs
+    cmds:
+      - cp $ROOT/scripts/initramfs/init .
+      - mkdir -pv {bin,sbin,etc,proc,sys,usr/{bin,sbin}}
+      - cp -av ../busybox-1.33.0/build/_install/* .
+
+  create-cpio:
+    dir: out/initramfs
+    cmds:
+      - mkdir -pv {bin,dev,sbin,etc,proc,sys/kernel/debug,usr/{bin,sbin},lib,lib64,mnt/root,root}
+      - find . -print0 | cpio --null -ov --format=newc > initramfs.cpio
+      - mv initramfs.cpio $INITRAMFS

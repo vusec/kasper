@@ -1,0 +1,46 @@
+version: '3'
+
+tasks:
+  run-bench:
+    desc: run syzkaller fuzzer and record execution statistics
+    cmds:
+      - task syzkaller:prep-run
+      - rm -f $ROOT/out/syzkaller-bench
+      - $SYZKALLER_BIN/syz-manager -config=$SYZKALLER_CFG --bench $ROOT/out/syzkaller-bench
+
+  run-nobench:
+    desc: run syzkaller fuzzer and _do not_ record execution statistics
+    cmds:
+      - task syzkaller:prep-run
+      - $SYZKALLER_BIN/syz-manager -config=$SYZKALLER_CFG
+
+  prep-run:
+    cmds:
+      - test $SYZKALLER_LOGS_PATH
+      - rm -rf $SYZKALLER_LOGS_PATH
+      - mkdir -p $SYZKALLER_LOGS_PATH
+
+  build:
+    desc: build syzkaller
+    vars:
+      KERNEL: 'KERNEL: $KERNEL'
+      SYZKALLER_PREFIX: 'SYZKALLER_PREFIX: $SYZKALLER_PREFIX'
+      SYZKALLER_WORKDIR: 'SYZKALLER_WORKDIR: {{.ROOT}}/out/syzkaller-workdir'
+      SYZKALLER_IMG: 'SYZKALLER_IMG: $SYZKALLER_IMG'
+      SYZKALLER_LOGS_PATH: 'SYZKALLER_LOGS_PATH: $SYZKALLER_LOGS_PATH'
+      TEMPLATE_DATA: "{{.KERNEL}}\n{{.SYZKALLER_PREFIX}}\n{{.SYZKALLER_WORKDIR}}\n{{.SYZKALLER_IMG}}\n{{.SYZKALLER_LOGS_PATH}}"
+    cmds:
+      - go get github.com/cbroglie/mustache/...
+      - echo "{{.TEMPLATE_DATA}}" | $GOPATH/bin/mustache $ROOT/syzkaller.cfg.template > $SYZKALLER_CFG
+      - mkdir -p $ROOT/out/go/src/github.com/google
+      - ln -sfn $SYZKALLER_PREFIX $ROOT/out/go/src/github.com/google/syzkaller
+      - cd $SYZKALLER_PREFIX && make
+
+  create-image:
+    desc: create syzkaller image
+    cmds:
+      - mkdir -p $SYZKALLER_IMG
+      - wget "https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh" -O $SYZKALLER_IMG/create-image.sh
+      - chmod +x $SYZKALLER_IMG/create-image.sh
+      - cd $SYZKALLER_IMG && ./create-image.sh
+      - cd $SYZKALLER_IMG && cp stretch.img stretch.img.bak
