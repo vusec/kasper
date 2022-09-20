@@ -22,14 +22,16 @@ task initramfs:create
 task syzkaller:create-image
 ```
 
-Build [syzkaller with Kasper support](https://github.com/vusec/kdfsan-syzkaller/tree/kasper-syzkaller):
-```
-task syzkaller:build
-```
-
 Configure and build [LLVM with Kasper support](https://github.com/vusec/kdfsan-llvm-project/tree/kasper-llvm-v11):
 ```
 task llvm:config llvm:build
+```
+
+Build [syzkaller with Kasper support](https://github.com/vusec/kdfsan-syzkaller/tree/kasper-syzkaller):
+
+**WARNING**: the version of syzkaller we use only works with golang 1.15 (we are using goalgn 1.15.15)!
+```
+task syzkaller:build
 ```
 
 Configure and build a [Kasper-instrumented Linux kernel](https://github.com/vusec/kdfsan-linux/tree/kasper-linux-v5.12):
