@@ -4,7 +4,7 @@ tasks:
   create:
     desc: create initramfs
     cmds:
-      - cd out && curl https://busybox.net/downloads/busybox-1.33.0.tar.bz2 | tar xjf -
+      - mkdir -p out && cd out && curl https://busybox.net/downloads/busybox-1.33.0.tar.bz2 | tar xjf -
       - task initramfs:busybox
       - task initramfs:initramfs
       - rm -rf out/busybox-1.33.0
