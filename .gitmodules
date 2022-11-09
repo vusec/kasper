@@ -1,16 +1,16 @@
 [submodule "kdfsan-linux"]
 	path = kdfsan-linux
-	url = git@github.com:vusec/kdfsan-linux.git
+	url = https://github.com/vusec/kdfsan-linux.git
 	branch = kasper-linux-v5.12
 [submodule "kdfsan-llvm-project"]
 	path = kdfsan-llvm-project
-	url = git@github.com:vusec/kdfsan-llvm-project.git
+	url = https://github.com/vusec/kdfsan-llvm-project.git
 	branch = kasper-llvm-v11
 [submodule "kdfsan-syzkaller"]
 	path = kdfsan-syzkaller
-	url = git@github.com:vusec/kdfsan-syzkaller.git
+	url = https://github.com/vusec/kdfsan-syzkaller.git
 	branch = kasper-syzkaller
 [submodule "kasper-results"]
 	path = kasper-results
-	url = git@github.com:vusec/kasper-results.git
+	url = https://github.com/vusec/kasper-results.git
 	branch = main
