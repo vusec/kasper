@@ -8,7 +8,7 @@ MEMORY="8192"
 TYPE=$1
 if [[ $TYPE = "syzkaller" ]]; then
   RAMDISK=
-  HDA="${SYZKALLER_IMG}/stretch.img"
+  HDA="${SYZKALLER_IMG}/bullseye.img"
   APPEND="${APPEND} root=/dev/sda"
   if [ -n "${SYZKALLER_SSH_PORT}" ]; then
     NET1="nic,model=e1000"

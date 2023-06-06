@@ -79,5 +79,5 @@ def copy_testcases(testprogs_path, syzkaller_ssh_port=SYZKALLER_SSH_PORT):
     testprogs = '{}/*.bin'.format(testprogs_path)
     exec_command([
         'sh', '-c',
-        'scp -i {}/stretch.id_rsa -P {} {} root@localhost:/root 2>/dev/null'.format(
+        'scp -i {}/bullseye.id_rsa -P {} {} root@localhost:/root 2>/dev/null'.format(
             SYZKALLER_IMG, syzkaller_ssh_port, testprogs)])

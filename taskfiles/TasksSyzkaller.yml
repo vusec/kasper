@@ -43,4 +43,4 @@ tasks:
       - wget "https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh" -O $SYZKALLER_IMG/create-image.sh
       - chmod +x $SYZKALLER_IMG/create-image.sh
       - cd $SYZKALLER_IMG && ./create-image.sh
-      - cd $SYZKALLER_IMG && cp stretch.img stretch.img.bak
+      - cd $SYZKALLER_IMG && cp bullseye.img bullseye.img.bak
