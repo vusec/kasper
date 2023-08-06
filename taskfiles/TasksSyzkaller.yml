@@ -30,6 +30,8 @@ tasks:
       SYZKALLER_LOGS_PATH: 'SYZKALLER_LOGS_PATH: $SYZKALLER_LOGS_PATH'
       TEMPLATE_DATA: "{{.KERNEL}}\n{{.SYZKALLER_PREFIX}}\n{{.SYZKALLER_WORKDIR}}\n{{.SYZKALLER_IMG}}\n{{.SYZKALLER_LOGS_PATH}}"
     cmds:
+      - mkdir -p $ROOT/out/go/src/github.com/cbroglie
+      - git clone --branch v1.3.1 https://github.com/cbroglie/mustache $ROOT/out/go/src/github.com/cbroglie/mustache
       - go get github.com/cbroglie/mustache/...
       - echo "{{.TEMPLATE_DATA}}" | $GOPATH/bin/mustache $ROOT/syzkaller.cfg.template > $SYZKALLER_CFG
       - mkdir -p $ROOT/out/go/src/github.com/google
