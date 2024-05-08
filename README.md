@@ -1,7 +1,11 @@
 # Kasper: Scanning for Generalized Transient Execution Gadgets in the Linux Kernel
 
+We present Kasper, a speculative execution gadget scanner for the Linux kernel.
+Kasper uses taint analysis policies to model an attacker capable of exploiting arbitrary software/hardware vulnerabilities on a transient path to control data (e.g., through memory massaging or LVI), access secrets (e.g., through out-of-bounds or use-after-free accesses), and leak these secrets (e.g., through cache-based, MDS-based, or port contention-based covert channels).
+Even though the kernel is heavily hardened against transient execution attacks, Kasper finds hundreds of gadgets that are not yet mitigated.
+You can find the full paper [here](https://download.vusec.net/papers/kasper_ndss22.pdf).
 
-### Setting up ###
+## Setting up ##
 
 Install dependencies, including [go-task](https://taskfile.dev/#/installation) as a task-runner:
 ```
@@ -14,7 +18,7 @@ Initialize/update git submodules (this will take awhile the first time it's run)
 task update
 ```
 
-### Building ###
+## Building ##
 
 Create an initramfs and [a disk image to be used with syzkaller](https://github.com/google/syzkaller/blob/master/docs/linux/setup_ubuntu-host_qemu-vm_x86-64-kernel.md#image):
 ```
@@ -39,8 +43,7 @@ Configure and build a [Kasper-instrumented Linux kernel](https://github.com/vuse
 task kernel:config build kernel:bzImage
 ```
 
-
-### Running ###
+## Running ##
 
 Test that the instrumented kernel runs correctly:
 ```
@@ -52,6 +55,6 @@ Fuzz the instrumented kernel:
 task syzkaller:run-nobench
 ```
 
-### Evaluation ###
+## Evaluation ##
 
 To aggregate gadgets and run the evaluation please check out [kasper-results](https://github.com/vusec/kasper-results).
