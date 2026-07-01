@@ -79,5 +79,27 @@ def copy_testcases(testprogs_path, syzkaller_ssh_port=SYZKALLER_SSH_PORT):
     testprogs = '{}/*.bin'.format(testprogs_path)
     exec_command([
         'sh', '-c',
-        'scp -i {}/bullseye.id_rsa -P {} {} root@localhost:/root 2>/dev/null'.format(
+        'scp -i {}/stretch.id_rsa -P {} {} root@localhost:/root 2>/dev/null'.format(
             SYZKALLER_IMG, syzkaller_ssh_port, testprogs)])
+
+# def copy_testcases_syz_lang(testprogs_path, syzkaller_ssh_port=SYZKALLER_SSH_PORT):
+#     print('Copying syz-lang files onto VM...')
+#     testprogs = '{}/*.txt'.format(testprogs_path)
+#     exec_command([
+#         'sh', '-c',
+#         'scp -i {}/stretch.id_rsa -P {} {} root@localhost:/root 2>/dev/null'.format(
+#             SYZKALLER_IMG, syzkaller_ssh_port, testprogs)])
+
+def copy_testcases_syz_lang(testprogs_path, syzkaller_ssh_port=SYZKALLER_SSH_PORT):
+    print('Copying syz-lang files onto VM...')
+    exec_command([
+        'sh', '-c',
+        'scp -r -o StrictHostKeyChecking=no -i {}/stretch.id_rsa -P {} {} root@localhost:/root/syz_testcases'.format(
+            SYZKALLER_IMG, syzkaller_ssh_port, testprogs_path)])
+
+def copy_syz_tools(syzkaller_ssh_port=SYZKALLER_SSH_PORT):
+    print('Copying syz-execprog and syz-executor onto VM...')
+    exec_command([
+        'sh', '-c',
+        'scp -i {}/stretch.id_rsa -P {} kdfsan-syzkaller/bin/linux_amd64/syz-execprog kdfsan-syzkaller/bin/linux_amd64/syz-executor root@localhost:/root 2>/dev/null'.format(
+            SYZKALLER_IMG, syzkaller_ssh_port)])

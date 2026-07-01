@@ -4,7 +4,7 @@ import pexpect
 import argparse
 from time import sleep
 
-from common import getch, exec_command, snapshot_save, snapshot_load, copy_testcases, expect
+from common import getch, exec_command, snapshot_save, snapshot_load, copy_testcases, copy_testcases_syz_lang, copy_syz_tools, expect
 
 FILE_PID = ".qemupid"
 SYZKALLER_SSH_PORT = 1580
@@ -15,6 +15,8 @@ parser = argparse.ArgumentParser(description='pexpect run spectrestar with qemu'
 parser.add_argument('--target', dest='target', default="syzkaller", type=str)
 parser.add_argument('--loadvm', dest='loadvm', default=None, type=str)
 parser.add_argument('--testprogs', dest='testprogs', default=None, type=str)
+parser.add_argument('--testprogs-syz-lang', dest='testprogs_syz_lang', default=None, type=str)
+parser.add_argument('--auto-eval', dest='auto_eval', action='store_const', const=sum, help='Run syz-lang payloads using loadvm/savevm loop')
 parser.add_argument('--gdb', dest='gdb', action='store_const', const=sum)
 parser.add_argument('--interactive', '-i', dest='interactive', action='store_const', const=sum)
 parser.add_argument('--restart-stats', dest='restart_stats', action='store_const', const=sum)
@@ -57,7 +59,7 @@ if args.gdb:
     env['ATTACH_GDB'] = '1'
 if args.loadvm:
     env['LOADVM'] = args.loadvm
-if args.target == 'syzkaller' and args.testprogs:
+if args.target == 'syzkaller' and (args.testprogs or args.testprogs_syz_lang):
     env['QEMUSOCKET'] = '{}-interact'.format(os.environ['QEMUSOCKET'])
     env['SYZKALLER_SSH_PORT'] = '{}'.format(SYZKALLER_SSH_PORT)
 
@@ -78,6 +80,8 @@ expect(qemu, PROMPT)
 qemu.sendline("printf '#!/bin/sh\\nfor i in *.bin;do echo $i;./$i;./$i;./$i;./$i;./$i;./$i;./$i;./$i;./$i;./$i;" +
     "done\\n' > testcases ; chmod +x testcases")
 expect(qemu, PROMPT)
+qemu.sendline("printf '#!/bin/sh\\nfor f in syz_testcases/*.txt; do ./syz-execprog -output -repeat=1 -procs=1 \"$f\"; done\\n' > run_testcases_syz_lang ; chmod +x run_testcases_syz_lang")
+expect(qemu, PROMPT)
 qemu.sendline("printf '#!/bin/sh\\ncat /sys/kernel/debug/kasper/enable\\n' > e ; chmod +x e")
 expect(qemu, PROMPT)
 
@@ -90,6 +94,9 @@ for num in range(41):
 
 if args.target == 'syzkaller' and args.testprogs:
     copy_testcases(args.testprogs, SYZKALLER_SSH_PORT)
+if args.target == 'syzkaller' and args.testprogs_syz_lang:
+    copy_testcases_syz_lang(args.testprogs_syz_lang, SYZKALLER_SSH_PORT)
+    copy_syz_tools(SYZKALLER_SSH_PORT)
 
 qemu.sendline('mount -t debugfs none /sys/kernel/debug')
 expect(qemu, PROMPT)
@@ -150,9 +157,66 @@ if args.policy_eval:
     qemu.sendline('echo 1 > /sys/kernel/debug/kdfsan/syscall_label_type')
     expect(qemu, PROMPT)
 
+if args.testprogs_syz_lang:
+    qemu.sendline("echo 'run ./e to enable kasper, then run ./run_testcases_syz_lang to execute syz-lang testcases'")
+    expect(qemu, PROMPT)
+
 if args.interactive:
     qemu.logfile = None
     qemu.interact()
+elif args.auto_eval:
+    print("\n[+] --- AUTOMATED KASPER EVALUATION MODE ---")
+    
+    # 1. Arm Kasper
+    qemu.sendline('./e')
+    expect(qemu, 'init kspecem writelog')
+    expect(qemu, PROMPT)
+    
+    # 2. Save Pristine VM State via QEMU Monitor
+    print("[+] Saving pristine VM state to snapshot 'clean_state'...")
+    # NOTE: We use env['QEMUSOCKET'] because qemu.py dynamically appends '-interact' to it earlier
+    snapshot_save('clean_state', env['QEMUSOCKET'])
+    
+    # 3. Read host directory for payloads
+    test_dir = args.testprogs_syz_lang
+    payloads = sorted([f for f in os.listdir(test_dir) if f.endswith('.txt')])
+    print(f"[+] Found {len(payloads)} payloads. Starting execution loop...\n")
+    
+
+    for idx, payload in enumerate(payloads):
+        print(f"[{idx+1}/{len(payloads)}] Executing {payload}...")
+        
+        print("executing program 0:")
+        with open(os.path.join(test_dir, payload), 'r') as prog_file:
+            print(prog_file.read())
+        print("")
+            
+        qemu.sendline(f'./syz-execprog -repeat=1 -procs=1 "syz_testcases/{payload}"')
+        
+        match_idx = qemu.expect([
+            PROMPT, 
+            r'\^\^\^\^ END REPORT \^\^\^\^', 
+            r'Kernel panic', 
+            r'Oops:', 
+            pexpect.TIMEOUT
+        ], timeout=25)
+        
+        if match_idx == 0:
+            print(f"[+] {payload} finished cleanly.")
+        else:
+            reason = "VULNERABILITY" if match_idx == 1 else "PANIC" if match_idx in [2, 3] else "HANG"
+            print(f"[!!!] {reason} detected in {payload}! Saving log...")
+            
+            with open(f"out/kasper_{reason.lower()}_{payload}.log", "w") as logf:
+                logf.write(qemu.before)
+        
+        snapshot_load('clean_state', env['QEMUSOCKET'])
+        
+        qemu.sendline('')
+        expect(qemu, PROMPT)
+        
+    print("\n[+] All payloads evaluated successfully.")
+    sys.exit(0)
 else:
     qemu.sendline('./e')
     expect(qemu, 'init kspecem writelog')

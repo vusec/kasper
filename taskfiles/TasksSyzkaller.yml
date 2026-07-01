@@ -38,11 +38,16 @@ tasks:
       - ln -sfn $SYZKALLER_PREFIX $ROOT/out/go/src/github.com/google/syzkaller
       - cd $SYZKALLER_PREFIX && make
 
+  build-execprog:
+    desc: Lightning fast cross-compilation of just the syz-execprog Go binary
+    cmds:
+      - cd kdfsan-syzkaller && env GOOS=linux GOARCH=amd64 go build -o bin/linux_amd64/syz-execprog ./tools/syz-execprog
+
   create-image:
     desc: create syzkaller image
     cmds:
       - mkdir -p $SYZKALLER_IMG
       - wget "https://raw.githubusercontent.com/google/syzkaller/master/tools/create-image.sh" -O $SYZKALLER_IMG/create-image.sh
       - chmod +x $SYZKALLER_IMG/create-image.sh
-      - cd $SYZKALLER_IMG && ./create-image.sh
-      - cd $SYZKALLER_IMG && cp bullseye.img bullseye.img.bak
+      - cd $SYZKALLER_IMG && ./create-image.sh -d stretch
+      - cd $SYZKALLER_IMG && cp stretch.img stretch.img.bak

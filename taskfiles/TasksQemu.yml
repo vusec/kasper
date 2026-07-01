@@ -32,6 +32,16 @@ tasks:
     cmds:
       - python3 scripts/qemu/qemu.py --testprogs {{.TESTCASES}} --interactive --gdb | tee out/interact-log
 
+  interact-syzkaller:
+    desc: (EXPERIMENTAL) run syzkaller image with SYZ-LANG testcases copied into the vm, and also run syzkaller manager within the vm
+    cmds:
+      - python3 scripts/qemu/qemu.py --testprogs-syz-lang {{.TESTCASES}} --whitelist t --interactive | tee out/interact-syzkaller-log
+
+  eval-kasper-fast:
+    desc: Run the rapid-fire snapshot loop against all syz-lang payloads
+    cmds:
+      - python3 scripts/qemu/qemu.py --testprogs-syz-lang {{.TESTCASES}} --whitelist t --auto-eval 2>&1 | tee out/eval-kasper-fast-log
+
   test:
     desc: run basic tests to ensure everything is working
     cmds:
